@@ -5,20 +5,26 @@ using System.IO;
 using System.Text;
 using System.ComponentModel;
 using System.Diagnostics;
+using Microsoft.Extensions.Configuration;
 
 namespace SystemRestarter
 {
 	class Program
 	{
-		//static Timer countDownTimer = null;
+		public static IConfiguration Configuration { get; set; }
 		static int timeUnderThreshold = 0;
-		static int minimumThreshold = 5000;
-		static int maxTimeUnderThreshold = 60;
+
+		static int minimumThreshold;
+		static int maxTimeUnderThreshold;
 
 		private static BackgroundWorker task = null;
 
 		static void Main(string[] args)
 		{
+			Configuration = ConfigurationHelper.GetConfig();
+			Int32.TryParse(Configuration["minimumThreshold"], out minimumThreshold);
+			Int32.TryParse(Configuration["maxTimeUnderThreshold"], out maxTimeUnderThreshold);
+
 			task = new BackgroundWorker();
 			task.DoWork += (s, args1) =>
 			{
@@ -40,7 +46,7 @@ namespace SystemRestarter
 
 			try
 			{
-				var res = Newtonsoft.Json.JsonConvert.DeserializeObject<Response>(sendCommand("{\"id\":0,\"jsonrpc\":\"2.0\",\"method\":\"miner_getstat1\"}"));
+				var res = Newtonsoft.Json.JsonConvert.DeserializeObject<ClaymoreResponse>(sendCommand("{\"id\":0,\"jsonrpc\":\"2.0\",\"method\":\"miner_getstat1\"}"));
 
 				int currHashrate;
 				Int32.TryParse(res.Result[2].Split(';')[0], out currHashrate);
@@ -85,7 +91,11 @@ namespace SystemRestarter
 		private static string sendCommand(string command)
 		{
 			TcpClient tcpclnt = new TcpClient();
-			tcpclnt.Connect("192.168.1.31", 3333);
+
+			int port = 0;
+			Int32.TryParse(Configuration["port"], out port);
+
+			tcpclnt.Connect(Configuration["ip"], port);
 			Stream stm = tcpclnt.GetStream();
 
 			ASCIIEncoding asen = new ASCIIEncoding();
@@ -94,21 +104,14 @@ namespace SystemRestarter
 			byte[] bb = new byte[1000];
 			int k = stm.Read(bb, 0, 1000);
 
-			StringBuilder ss = new StringBuilder();
+			StringBuilder Response = new StringBuilder();
 
 			for (int i = 0; i < k; i++)
-				ss.Append(Convert.ToChar(bb[i]));
+				Response.Append(Convert.ToChar(bb[i]));
 
 			tcpclnt.Close();
 
-			return ss.ToString();
+			return Response.ToString();
 		}
-	}
-
-	class Response
-	{
-		private string[] result;
-
-		public string[] Result { get => result; set => result = value; }
 	}
 }
