@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Threading;
-using System.Net.Sockets;
-using System.IO;
-using System.Text;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
 using Microsoft.Extensions.Configuration;
 
 namespace SystemRestarter
@@ -35,8 +35,7 @@ namespace SystemRestarter
 				}
 			};
 			task.RunWorkerAsync();
-
-			//countDownTimer = new Timer(TakeAction, null, 0, 1000);
+			
 			Console.ReadKey(true);
 		}
 
